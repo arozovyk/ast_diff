@@ -962,7 +962,7 @@ and directive_argument_desc = Parsetree.directive_argument_desc =
   | Pdir_ident of longident
   | Pdir_bool of bool
 
-and cases = case list [@@deriving ord, show]
+and cases = case list [@@deriving eq, show]
 
 open Utils.Ast_io
 

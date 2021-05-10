@@ -1,6 +1,11 @@
 open Stdio
 
 let parse_ast =
+  object
+    inherit Ast_diff.find_diff
+  end
+
+(* let parse_ast =
   object (_self)
     inherit [string list] Comp.fold
 
@@ -21,7 +26,7 @@ let parse_ast =
 
     method bool b b' a =
       ("b:" ^ Bool.to_string b ^ "-c':" ^ Bool.to_string b') :: a
-  end
+  end *)
 
 let write_to_file content path =
   let tmp_path = path in
@@ -35,8 +40,9 @@ let _ =
     let path = Array.get Sys.argv 1 in
     let origin = Ast.get_preprocessed_structure path in
     let reparsed = Ast.get_reparsed_structure path in
+    let open Ast_diff in
     parse_ast#structure origin reparsed []
-    |> List.iter (fun x -> print_endline x);
+    |> List.iter (fun x -> print_endline (diff_to_string x));
     write_to_file (Ast.show_structure origin) "/tmp/original";
     write_to_file (Ast.show_structure reparsed) "/tmp/reparsed")
   else ()
