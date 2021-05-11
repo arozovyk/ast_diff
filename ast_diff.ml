@@ -12,8 +12,8 @@ let i = ref 0
 let add_diff method_name fst_node_pp snd_node_pp acc =
   let r = { method_name; fst_node_pp; snd_node_pp } in
   i := !i + 1;
-  print_endline ("adding:" ^ Int.to_string !i);
-  print_endline ("size add diff is :" ^ Int.to_string (List.length acc));
+  (* print_endline ("adding:" ^ Int.to_string !i);
+  print_endline ("size add diff is :" ^ Int.to_string (List.length acc)); *)
   (*       print_endline ("adding : " ^ diff_to_string r); 
  *) r :: acc
 
@@ -39,13 +39,13 @@ class find_diff =
           let a =
             List.map2 (fun x y -> f x y a) l l' |> List.flatten |> ( @ ) a
           in
+
           (* print_endline
              ("size after flatten is :" ^ Int.to_string (List.length a)); *)
-          let a = Base.List.dedup_and_sort ~compare:compare_diff a in
           a
         else (
-          print_endline "different list sizes";
-          a)
+(*           print_endline "different list sizes";
+ *)          a)
 
     method option
         : 'a.
@@ -569,14 +569,14 @@ class find_diff =
           | Pexp_unreachable, Pexp_unreachable -> acc
           | _ -> acc
         else (
-          print_endline ("inside expressiondesc:" ^ Int.to_string !i);
-          print_endline ("size bef expr is :" ^ Int.to_string (List.length acc));
+        (*   print_endline ("inside expressiondesc:" ^ Int.to_string !i);
+          print_endline ("size bef expr is :" ^ Int.to_string (List.length acc)); *)
           let acc =
             add_diff "expression_desc" (show_expression_desc x)
               (show_expression_desc x') acc
           in
-          print_endline
-            ("size after expr is :" ^ Int.to_string (List.length acc));
+         (*  print_endline
+            ("size after expr is :" ^ Int.to_string (List.length acc)); *)
           acc)
 
     method case : case -> case -> diff list -> diff list =
@@ -1343,7 +1343,7 @@ class find_diff =
           { pstr_desc = pstr_desc'; pstr_loc = pstr_loc' } acc ->
         let acc = self#structure_item_desc pstr_desc pstr_desc' acc in
         let acc = self#location pstr_loc pstr_loc' acc in
-        acc
+        acc |> Base.List.dedup_and_sort ~compare:compare_diff
 
     method structure_item_desc
         : structure_item_desc -> structure_item_desc -> diff list -> diff list =

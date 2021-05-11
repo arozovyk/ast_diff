@@ -973,7 +973,7 @@ let get_preprocessed_structure path =
   match read input_source ~input_kind:Necessarily_binary with
   | Ok { ast; _ } -> (
       match ast with Impl i -> i | Intf _ -> failwith "Its an Intf")
-  | Error _ -> failwith ("Some error occured on parsing the " ^ path)
+  | Error _ -> failwith ("Some error occured while parsing the path:" ^ path)
 
 let get_reparsed_structure path =
   let str = get_preprocessed_structure path in
