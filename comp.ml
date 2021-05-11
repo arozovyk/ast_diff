@@ -353,6 +353,7 @@ class virtual ['acc] fold =
     method expression_desc : expression_desc -> expression_desc -> 'acc -> 'acc
         =
       fun x x' acc ->
+        if (equal_expression_desc x x') then 
         match (x, x') with
         | Pexp_ident a, Pexp_ident a' -> self#longident_loc a a' acc
         | Pexp_constant a, Pexp_constant a' -> self#constant a a' acc

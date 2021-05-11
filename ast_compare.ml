@@ -41,8 +41,8 @@ let _ =
     let origin = Ast.get_preprocessed_structure path in
     let reparsed = Ast.get_reparsed_structure path in
     let open Ast_diff in
-    parse_ast#structure origin reparsed []
-    |> List.iter (fun x -> print_endline (diff_to_string x));
-    write_to_file (Ast.show_structure origin) "/tmp/original";
-    write_to_file (Ast.show_structure reparsed) "/tmp/reparsed")
+    let x = parse_ast#structure origin reparsed [] in
+    print_endline (Int.to_string (List.length x));
+    let d = List.fold_left (fun x y -> x ^ y) "" (List.map diff_to_string x) in
+    write_to_file d "/tmp/original")
   else ()

@@ -9,12 +9,14 @@ type position = Lexing.position = {
 }
 
 and location = Location.t = {
-  loc_start : position;
-  loc_end : position;
-  loc_ghost : bool; [@printer fun fmt -> Caml.Format.ifprintf fmt "%b"]
+  loc_start : position; [@equal fun _ _ -> true]
+  loc_end : position; [@equal fun _ _ -> true]
+  loc_ghost : bool;
+      [@printer fun fmt -> Caml.Format.ifprintf fmt "%b"]
+      [@equal fun _ _ -> true]
 }
 
-and location_stack = location list
+and location_stack = location list[@equal fun _ _ -> true]
 
 (* Note on the use of Lexing.position in this module.
    If [pos_fname = ""], then use [!input_name] instead.
