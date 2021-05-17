@@ -1,6 +1,6 @@
 open Ppxlib
 open Base
-
+ 
 type position = Lexing.position = {
   pos_fname : string; [@printer fun fmt -> Caml.Format.ifprintf fmt "%s"]
   pos_lnum : int; [@printer fun fmt -> Caml.Format.ifprintf fmt "%d"]
@@ -16,7 +16,7 @@ and location = Location.t = {
       [@equal fun _ _ -> true]
 }
 
-and location_stack = location list[@equal fun _ _ -> true]
+and location_stack = location list[@printer fun fmt ->  Caml.Format.pp_print_list (fun _ _ -> ()) fmt ][@equal fun _ _ -> true]
 
 (* Note on the use of Lexing.position in this module.
    If [pos_fname = ""], then use [!input_name] instead.
