@@ -38,15 +38,26 @@ class find_diff =
           diff list ->
           diff list =
       fun f l l' a ->
-        if List.length l = List.length l' && List.length l > 0 then (
+        if
+          List.length l = List.length l'
+          && List.length l > 0
+          && List.length l' > 0
+        then
           let b = List.map2 (fun x y -> f x y a) l l' in
           (* List.iter
-            (List.iter (fun x ->
-                 print_string (String.sub x.fst_node_pp 0 25 ^ "__")))
-            b;
-          print_endline "--"; *)
-          let b = List.flatten b in
-          List.append b a)
+               (List.iter (fun x ->
+                    print_string (String.sub x.fst_node_pp 0 25 ^ "__")))
+               b;
+             print_endline "--"; *)
+          let rec flatten l =
+            match l with
+            | [] -> []
+            | l :: t ->
+                print_endline (Int.to_string (List.length l));
+                List.append l (flatten t)
+          in
+          let b = flatten b in
+          b
         else a
 
     method option
@@ -57,7 +68,13 @@ class find_diff =
           diff list ->
           diff list =
       fun f o o' a ->
-        match (o, o') with Some x, Some y -> f x y a @ a | _ -> a
+        match (o, o') with
+        | Some x, Some y ->
+            print_endline ("a before option " ^ (List.length a |> Int.to_string));
+            let a = f x y a @ a in
+            print_endline ("a after option " ^ (List.length a |> Int.to_string));
+            a
+        | _ -> a
 
     method string : string -> string -> diff list -> diff list = fun _ _ d -> d
 
@@ -431,6 +448,8 @@ class find_diff =
     method expression_desc
         : expression_desc -> expression_desc -> diff list -> diff list =
       fun x x' acc ->
+        (* print_endline (String.sub (show_expression_desc x) 0 20);
+           print_endline (String.sub (show_expression_desc x') 0 20); *)
         if equal_expression_desc x x' then
           match (x, x') with
           | Pexp_ident a, Pexp_ident a' -> self#longident_loc a a' acc
@@ -517,6 +536,7 @@ class find_diff =
               let acc = self#expression e e' acc in
               acc
           | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
+              print_endline "tik";
               let acc = self#expression a a' acc in
               let acc = self#core_type b b' acc in
               acc
@@ -655,10 +675,21 @@ class find_diff =
               let acc = self#direction_flag d d' acc in
               let acc = self#expression e e' acc in
               acc
-          (* | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
+          | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
+              print_endline "tak";
+
               let acc = self#expression a a' acc in
               let acc = self#core_type b b' acc in
-              acc  *) (*FIXME SEGFAULT*)
+              acc
+              (*FIXME SEGFAULT*)
+              (* | Pexp_constraint _, Pexp_constraint _ ->
+                 let acc =
+                   add_diff "Pexp_constraint" (show_expression_desc x)
+                     (show_expression_desc x') acc
+                 in
+                 (* let acc = self#expression a a' acc in
+                 let acc = self#core_type b b' acc in *)
+                 acc *)
           | Pexp_coerce (a, b, c), Pexp_coerce (a', b', c') ->
               let acc = self#expression a a' acc in
               let acc = self#option self#core_type b b' acc in
@@ -710,18 +741,16 @@ class find_diff =
           | Pexp_unreachable, Pexp_unreachable -> acc
           | ( Pexp_apply ({ pexp_desc = Pexp_newtype (a, b); _ }, _),
               Pexp_newtype (a', b') ) ->
-              (*               print_endline "Case: | Pexp_apply (pexp_desc, _), pexp_desc ";
- *)
+              (*  print_endline "Case: | Pexp_apply (pexp_desc, _), pexp_desc "; *)
               let acc = self#loc self#string a a' acc in
               let acc = self#expression b b' acc in
               acc
           | Pexp_newtype (_, _), Pexp_apply (_, _) ->
-              (*               print_endline "Case: |  pexp_desc, Pexp_apply (pexp_desc, _) ";
- *)
+              (* print_endline "Case: |  pexp_desc, Pexp_apply (pexp_desc, _) "; *)
               acc
           | _ ->
-              (* print_endline (String.sub (show_expression_desc x) 0 20);
-                 print_endline (String.sub (show_expression_desc x') 0 20); *)
+              (* print_endline (String.sub (show_expression_desc x) 0 25);
+                 print_endline (String.sub (show_expression_desc x') 0 25); *)
               diff_count <- diff_count + 1;
               let acc =
                 add_diff "expression_desc" (show_expression_desc x)
