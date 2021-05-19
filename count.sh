@@ -1,0 +1,1 @@
+cd /tmp/counts  && paste -d+ `ls` | bc 

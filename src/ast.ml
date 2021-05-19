@@ -1,6 +1,6 @@
 open Ppxlib
 open Base
- 
+
 type position = Lexing.position = {
   pos_fname : string; [@printer fun fmt -> Caml.Format.ifprintf fmt "%s"]
   pos_lnum : int; [@printer fun fmt -> Caml.Format.ifprintf fmt "%d"]
@@ -9,14 +9,17 @@ type position = Lexing.position = {
 }
 
 and location = Location.t = {
-  loc_start : position; [@equal fun _ _ -> true]
-  loc_end : position; [@equal fun _ _ -> true]
+  loc_start : position; [@printer fun _ _ -> ()] [@equal fun _ _ -> true]
+  loc_end : position; [@printer fun _ _ -> ()] [@equal fun _ _ -> true]
   loc_ghost : bool;
       [@printer fun fmt -> Caml.Format.ifprintf fmt "%b"]
       [@equal fun _ _ -> true]
 }
 
-and location_stack = location list[@printer fun fmt ->  Caml.Format.pp_print_list (fun _ _ -> ()) fmt ][@equal fun _ _ -> true]
+and location_stack =
+  (location list
+  [@printer fun fmt -> Caml.Format.pp_print_list (fun _ _ -> ()) fmt]
+  [@equal fun _ _ -> true])
 
 (* Note on the use of Lexing.position in this module.
    If [pos_fname = ""], then use [!input_name] instead.
@@ -296,7 +299,7 @@ and expression = Parsetree.expression = {
   pexp_desc : expression_desc;
   pexp_loc : location;
   pexp_loc_stack : location_stack;
-  pexp_attributes : attributes; (* ... [@id1] [@id2] *)
+  pexp_attributes : attributes; [@equal fun _ _ -> true] (* ... [@id1] [@id2] *)
 }
 
 and expression_desc = Parsetree.expression_desc =

@@ -2,31 +2,8 @@ open Stdio
 
 let parse_ast =
   object
-    inherit Ast_diff.find_diff
+    inherit Ast_traversal.find_diff
   end
-
-(* let parse_ast =
-  object (_self)
-    inherit [string list] Comp.fold
-
-    method string s s' a = ("s:" ^ s ^ "-s':" ^ s') :: a
-
-    method option f o o' a =
-      match (o, o') with Some x, Some y -> f x y a @ a | _ -> a
-
-    method list f l l' a =
-      if List.length l = List.length l' then
-        List.map2 (fun x y -> f x y a) l l' |> List.flatten
-      else a
-
-    method int i i' a =
-      ("i:" ^ Int.to_string i ^ "-i':" ^ Int.to_string i') :: a
-
-    method char c c' a = ("c:" ^ Char.escaped c ^ "-b':" ^ Char.escaped c') :: a
-
-    method bool b b' a =
-      ("b:" ^ Bool.to_string b ^ "-c':" ^ Bool.to_string b') :: a
-  end *)
 
 let write_to_file content path =
   let tmp_path = path in
@@ -41,10 +18,11 @@ let _ =
     try
       let origin = Ast.get_preprocessed_structure path in
       let reparsed = Ast.get_reparsed_structure path in
-      let open Ast_diff in
+      let open Ast_traversal in
       let x = parse_ast#structure origin reparsed [] |> List.rev in
       if List.length x > 0 then (
-        print_endline ("Found some diffs for " ^ path);
+        (*         print_endline ("Found some diffs for " ^ path);
+ *)
         let res_o, res_r =
           List.map
             (fun { method_name; fst_node_pp; snd_node_pp } ->
@@ -70,6 +48,10 @@ let _ =
         in
         (*         print_endline ("writing:"^path);
  *)
+        write_to_file
+          (Int.to_string parse_ast#get_diff_count)
+          ("/tmp/counts/" ^ fname1 ^ "-counts");
+
         write_to_file str_res_o ("/tmp/diffs/" ^ fname1);
         write_to_file str_res_r ("/tmp/diffs/" ^ fname2))
       else (* print_endline ("ASTs are identical for : " ^ path) *) ()
