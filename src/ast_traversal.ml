@@ -41,10 +41,8 @@ class find_diff =
         if List.length l = List.length l' && List.length l > 0 then
           (* print_endline
              ("size before flatten is :" ^ Int.to_string (List.length a)); *)
-          let a =
-            List.map2 (fun x y -> f x y a) l l' |> List.flatten |> ( @ ) a
-          in
-
+          let b = List.map2 (fun x y -> f x y a) l l' |> List.flatten in
+          let a = List.append a b in
           (* print_endline
              ("size after flatten is :" ^ Int.to_string (List.length a)); *)
           a
@@ -59,7 +57,11 @@ class find_diff =
           diff list ->
           diff list =
       fun f o o' a ->
-        match (o, o') with Some x, Some y -> f x y a @ a | _ -> a
+        match (o, o') with
+        | Some x, Some y ->
+            let b = f x y a in
+            List.append a b
+        | _ -> a
 
     method string : string -> string -> diff list -> diff list = fun _ _ d -> d
 
