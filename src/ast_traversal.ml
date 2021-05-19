@@ -38,16 +38,16 @@ class find_diff =
           diff list ->
           diff list =
       fun f l l' a ->
-        if List.length l = List.length l' && List.length l > 0 then
-          (* print_endline
-             ("size before flatten is :" ^ Int.to_string (List.length a)); *)
-          let b = List.map2 (fun x y -> f x y a) l l' |> List.flatten in
-          let a = List.append a b in
-          (* print_endline
-             ("size after flatten is :" ^ Int.to_string (List.length a)); *)
-          a
-        else (*           print_endline "different list sizes";
- *) a
+        if List.length l = List.length l' && List.length l > 0 then (
+          let b = List.map2 (fun x y -> f x y a) l l' in
+          (* List.iter
+            (List.iter (fun x ->
+                 print_string (String.sub x.fst_node_pp 0 25 ^ "__")))
+            b;
+          print_endline "--"; *)
+          let b = List.flatten b in
+          List.append b a)
+        else a
 
     method option
         : 'a.
@@ -57,11 +57,7 @@ class find_diff =
           diff list ->
           diff list =
       fun f o o' a ->
-        match (o, o') with
-        | Some x, Some y ->
-            let b = f x y a in
-            List.append a b
-        | _ -> a
+        match (o, o') with Some x, Some y -> f x y a @ a | _ -> a
 
     method string : string -> string -> diff list -> diff list = fun _ _ d -> d
 
@@ -659,10 +655,10 @@ class find_diff =
               let acc = self#direction_flag d d' acc in
               let acc = self#expression e e' acc in
               acc
-          | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
+          (* | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
               let acc = self#expression a a' acc in
               let acc = self#core_type b b' acc in
-              acc
+              acc  *) (*FIXME SEGFAULT*)
           | Pexp_coerce (a, b, c), Pexp_coerce (a', b', c') ->
               let acc = self#expression a a' acc in
               let acc = self#option self#core_type b b' acc in
@@ -714,12 +710,14 @@ class find_diff =
           | Pexp_unreachable, Pexp_unreachable -> acc
           | ( Pexp_apply ({ pexp_desc = Pexp_newtype (a, b); _ }, _),
               Pexp_newtype (a', b') ) ->
-              print_endline "Case: | Pexp_apply (pexp_desc, _), pexp_desc ";
+              (*               print_endline "Case: | Pexp_apply (pexp_desc, _), pexp_desc ";
+ *)
               let acc = self#loc self#string a a' acc in
               let acc = self#expression b b' acc in
               acc
           | Pexp_newtype (_, _), Pexp_apply (_, _) ->
-              print_endline "Case: |  pexp_desc, Pexp_apply (pexp_desc, _) ";
+              (*               print_endline "Case: |  pexp_desc, Pexp_apply (pexp_desc, _) ";
+ *)
               acc
           | _ ->
               (* print_endline (String.sub (show_expression_desc x) 0 20);
