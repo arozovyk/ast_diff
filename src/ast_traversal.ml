@@ -12,10 +12,6 @@ let i = ref 0
 let add_diff method_name fst_node_pp snd_node_pp acc =
   let r = { method_name; fst_node_pp; snd_node_pp } in
   i := !i + 1;
-  (* print_endline ("adding:" ^ Int.to_string !i);
-     print_endline ("size add diff is :" ^ Int.to_string (List.length acc)); *)
-  (*       print_endline ("adding : " ^ diff_to_string r); 
- *)
   r :: acc
 
 class find_diff =
@@ -50,11 +46,7 @@ class find_diff =
                b;
              print_endline "--"; *)
           let rec flatten l =
-            match l with
-            | [] -> []
-            | l :: t ->
-                print_endline (Int.to_string (List.length l));
-                List.append l (flatten t)
+            match l with [] -> [] | l :: t -> List.append l (flatten t)
           in
           let b = flatten b in
           b
@@ -70,9 +62,7 @@ class find_diff =
       fun f o o' a ->
         match (o, o') with
         | Some x, Some y ->
-            print_endline ("a before option " ^ (List.length a |> Int.to_string));
             let a = f x y a @ a in
-            print_endline ("a after option " ^ (List.length a |> Int.to_string));
             a
         | _ -> a
 
@@ -536,7 +526,6 @@ class find_diff =
               let acc = self#expression e e' acc in
               acc
           | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
-              print_endline "tik";
               let acc = self#expression a a' acc in
               let acc = self#core_type b b' acc in
               acc
@@ -676,8 +665,6 @@ class find_diff =
               let acc = self#expression e e' acc in
               acc
           | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
-              print_endline "tak";
-
               let acc = self#expression a a' acc in
               let acc = self#core_type b b' acc in
               acc
@@ -739,15 +726,57 @@ class find_diff =
           | Pexp_letop a, Pexp_letop a' -> self#letop a a' acc
           | Pexp_extension a, Pexp_extension a' -> self#extension a a' acc
           | Pexp_unreachable, Pexp_unreachable -> acc
+          (* BEGIN SPECIAL CASES*)
           | ( Pexp_apply ({ pexp_desc = Pexp_newtype (a, b); _ }, _),
               Pexp_newtype (a', b') ) ->
-              (*  print_endline "Case: | Pexp_apply (pexp_desc, _), pexp_desc "; *)
               let acc = self#loc self#string a a' acc in
               let acc = self#expression b b' acc in
               acc
-          | Pexp_newtype (_, _), Pexp_apply (_, _) ->
-              (* print_endline "Case: |  pexp_desc, Pexp_apply (pexp_desc, _) "; *)
+          | ( Pexp_newtype (a, b),
+              Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
+              let acc = self#loc self#string a a' acc in
+              let acc = self#expression b b' acc in
               acc
+              (* 7881 to 7833 (48)*)
+          | ( Pexp_constraint (a, b),
+              Pexp_apply ({ pexp_desc = Pexp_constraint (a', b'); _ }, _) ) ->
+              let acc = self#expression a a' acc in
+              let acc = self#core_type b b' acc in
+              acc
+              (* 7833 to 7672 (161)*)
+          | ( Pexp_open (a, b),
+              Pexp_constraint ({ pexp_desc = Pexp_open (a', b'); _ }, _) ) ->
+              let acc = self#open_declaration a a' acc in
+              let acc = self#expression b b' acc in
+              acc
+          (* 7672 to 6612 (1060)*)
+          | ( Pexp_fun (a, b, c, d),
+              Pexp_apply ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) ) ->
+              let acc = self#arg_label a a' acc in
+              let acc = self#option self#expression b b' acc in
+              let acc = self#pattern c c' acc in
+              let acc = self#expression d d' acc in
+              acc
+          (* 6612 to 6335 (277)*)
+          | ( Pexp_fun (a, b, c, d),
+              Pexp_constraint ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _)
+            ) ->
+              let acc = self#arg_label a a' acc in
+              let acc = self#option self#expression b b' acc in
+              let acc = self#pattern c c' acc in
+              let acc = self#expression d d' acc in
+              acc
+          (* 6335 to 5734 (601)*)
+          (*Ok, let's go*)
+          | pexp_desc, Pexp_constraint ({ pexp_desc = pexp_desc'; _ }, _) ->
+              let acc = self#expression_desc pexp_desc pexp_desc' acc in
+              acc
+          (* 5734 to 5119 (615)*)
+          | pexp_desc, Pexp_poly ({ pexp_desc = pexp_desc'; _ }, _) ->
+              let acc = self#expression_desc pexp_desc pexp_desc' acc in
+              acc
+              (*5119 to 80 (5039)*)
+          (* END SPECIAL CASES*)
           | _ ->
               (* print_endline (String.sub (show_expression_desc x) 0 25);
                  print_endline (String.sub (show_expression_desc x') 0 25); *)
