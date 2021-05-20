@@ -869,15 +869,19 @@ class find_diff =
                   ( { e1 with pexp_desc = normalized_newtypes },
                     arg_lablel_e_list )
               in
-
               let normalized_pexp_desc2 =
                 Pexp_sequence ({ seqexp1 with pexp_desc = normalized_apply }, e2)
               in
-
               let acc =
                 self#expression_desc oexpr_desc normalized_pexp_desc2 acc
               in
               acc
+              (* 78 to 18 (50)*)
+              (* let acc =
+                   add_diff "expression_desc" (show_expression_desc x)
+                     (show_expression_desc x') acc
+                 in
+                 acc *)
           | _ ->
               (* print_endline (String.sub (show_expression_desc x) 0 25);
                  print_endline (String.sub (show_expression_desc x') 0 25); *)
