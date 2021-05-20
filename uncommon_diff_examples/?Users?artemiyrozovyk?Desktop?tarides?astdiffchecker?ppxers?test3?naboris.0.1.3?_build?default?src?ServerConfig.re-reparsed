@@ -1,0 +1,59 @@
+expression_desc
+
+(Parsetree.Pexp_record (
+   [({ Location.txt = (Longident.Lident "read_buffer_size");
+       loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } },
+     { Parsetree.pexp_desc =
+       (Parsetree.Pexp_ident
+          { Location.txt = (Longident.Lident "read_buffer_size");
+            loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+       pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+       pexp_loc_stack = ; pexp_attributes = [] });
+     ({ Location.txt = (Longident.Lident "request_body_buffer_size");
+        loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } },
+      { Parsetree.pexp_desc =
+        (Parsetree.Pexp_ident
+           { Location.txt = (Longident.Lident "request_body_buffer_size");
+             loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+        pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+        pexp_loc_stack = ; pexp_attributes = [] });
+     ({ Location.txt = (Longident.Lident "response_buffer_size");
+        loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } },
+      { Parsetree.pexp_desc =
+        (Parsetree.Pexp_ident
+           { Location.txt = (Longident.Lident "response_buffer_size");
+             loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+        pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+        pexp_loc_stack = ; pexp_attributes = [] });
+     ({ Location.txt = (Longident.Lident "response_body_buffer_size");
+        loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } },
+      { Parsetree.pexp_desc =
+        (Parsetree.Pexp_ident
+           { Location.txt = (Longident.Lident "response_body_buffer_size");
+             loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+        pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+        pexp_loc_stack = ; pexp_attributes = [] })
+     ],
+   None))expression_desc
+
+(Parsetree.Pexp_ident
+   { Location.txt = (Longident.Lident "sessionConfig");
+     loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } })expression_desc
+
+(Parsetree.Pexp_ident
+   { Location.txt = (Longident.Lident "rest");
+     loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } })expression_desc
+
+(Parsetree.Pexp_ident
+   { Location.txt = (Longident.Lident "httpAfConfig");
+     loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } })expression_desc
+
+(Parsetree.Pexp_ident
+   { Location.txt = (Longident.Lident "errHandlerFn");
+     loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } })expression_desc
+
+(Parsetree.Pexp_variant ("Weak", None))expression_desc
+
+(Parsetree.Pexp_constant
+   (Parsetree.Pconst_string ("public, max-age=0",
+      { Location.loc_start = ; loc_end = ; loc_ghost =  }, None)))

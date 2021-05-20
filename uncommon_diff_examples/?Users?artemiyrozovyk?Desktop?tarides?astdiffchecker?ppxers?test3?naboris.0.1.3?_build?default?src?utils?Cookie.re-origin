@@ -1,0 +1,49 @@
+expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_ident
+         { Location.txt = (Longident.Lident "partialCookie");
+           loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ; pexp_attributes = [] }
+     ])expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_apply (
+         { Parsetree.pexp_desc =
+           (Parsetree.Pexp_ident
+              { Location.txt =
+                (Longident.Ldot ((Longident.Lident "String"), "sub"));
+                loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+           pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+           pexp_loc_stack = ; pexp_attributes = [] },
+         [(Asttypes.Nolabel,
+           { Parsetree.pexp_desc =
+             (Parsetree.Pexp_ident
+                { Location.txt = (Longident.Lident "partialCookie");
+                  loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+             pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+             pexp_loc_stack = ; pexp_attributes = [] });
+           (Asttypes.Nolabel,
+            { Parsetree.pexp_desc =
+              (Parsetree.Pexp_ident
+                 { Location.txt = (Longident.Lident "startOfString");
+                   loc = { Location.loc_start = ; loc_end = ; loc_ghost =  }
+                   });
+              pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+              pexp_loc_stack = ; pexp_attributes = [] });
+           (Asttypes.Nolabel,
+            { Parsetree.pexp_desc =
+              (Parsetree.Pexp_ident
+                 { Location.txt = (Longident.Lident "endOfCookie");
+                   loc = { Location.loc_start = ; loc_end = ; loc_ghost =  }
+                   });
+              pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+              pexp_loc_stack = ; pexp_attributes = [] })
+           ]
+         ));
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ; pexp_attributes = [] }
+     ])

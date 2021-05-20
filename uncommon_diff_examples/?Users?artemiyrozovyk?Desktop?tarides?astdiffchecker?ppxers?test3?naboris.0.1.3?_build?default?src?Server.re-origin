@@ -1,0 +1,97 @@
+expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_constant
+         (Parsetree.Pconst_string ("Internal server error",
+            { Location.loc_start = ; loc_end = ; loc_ghost =  }, None)));
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ;
+      pexp_attributes =
+      [{ Parsetree.attr_name =
+         { Location.txt = "reason.raw_literal";
+           loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } };
+         attr_payload =
+         (Parsetree.PStr
+            [{ Parsetree.pstr_desc =
+               (Parsetree.Pstr_eval (
+                  { Parsetree.pexp_desc =
+                    (Parsetree.Pexp_constant
+                       (Parsetree.Pconst_string ("Internal server error",
+                          { Location.loc_start = ; loc_end = ; loc_ghost =  },
+                          None)));
+                    pexp_loc =
+                    { Location.loc_start = ; loc_end = ; loc_ghost =  };
+                    pexp_loc_stack = ; pexp_attributes = [] },
+                  []));
+               pstr_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  }
+               }
+              ]);
+         attr_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } }
+        ]
+      }
+     ])expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_constant
+         (Parsetree.Pconst_string ("Bad request",
+            { Location.loc_start = ; loc_end = ; loc_ghost =  }, None)));
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ;
+      pexp_attributes =
+      [{ Parsetree.attr_name =
+         { Location.txt = "reason.raw_literal";
+           loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } };
+         attr_payload =
+         (Parsetree.PStr
+            [{ Parsetree.pstr_desc =
+               (Parsetree.Pstr_eval (
+                  { Parsetree.pexp_desc =
+                    (Parsetree.Pexp_constant
+                       (Parsetree.Pconst_string ("Bad request",
+                          { Location.loc_start = ; loc_end = ; loc_ghost =  },
+                          None)));
+                    pexp_loc =
+                    { Location.loc_start = ; loc_end = ; loc_ghost =  };
+                    pexp_loc_stack = ; pexp_attributes = [] },
+                  []));
+               pstr_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  }
+               }
+              ]);
+         attr_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } }
+        ]
+      }
+     ])expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_constant
+         (Parsetree.Pconst_string ("Bad gateway",
+            { Location.loc_start = ; loc_end = ; loc_ghost =  }, None)));
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ;
+      pexp_attributes =
+      [{ Parsetree.attr_name =
+         { Location.txt = "reason.raw_literal";
+           loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } };
+         attr_payload =
+         (Parsetree.PStr
+            [{ Parsetree.pstr_desc =
+               (Parsetree.Pstr_eval (
+                  { Parsetree.pexp_desc =
+                    (Parsetree.Pexp_constant
+                       (Parsetree.Pconst_string ("Bad gateway",
+                          { Location.loc_start = ; loc_end = ; loc_ghost =  },
+                          None)));
+                    pexp_loc =
+                    { Location.loc_start = ; loc_end = ; loc_ghost =  };
+                    pexp_loc_stack = ; pexp_attributes = [] },
+                  []));
+               pstr_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  }
+               }
+              ]);
+         attr_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } }
+        ]
+      }
+     ])

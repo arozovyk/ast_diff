@@ -1,0 +1,41 @@
+expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_apply (
+         { Parsetree.pexp_desc =
+           (Parsetree.Pexp_ident
+              { Location.txt =
+                (Longident.Ldot ((Longident.Lident "Session"), "create"));
+                loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+           pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+           pexp_loc_stack = ; pexp_attributes = [] },
+         [(Asttypes.Nolabel,
+           { Parsetree.pexp_desc =
+             (Parsetree.Pexp_ident
+                { Location.txt = (Longident.Lident "newSessionId");
+                  loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+             pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+             pexp_loc_stack = ; pexp_attributes = [] });
+           (Asttypes.Nolabel,
+            { Parsetree.pexp_desc =
+              (Parsetree.Pexp_ident
+                 { Location.txt = (Longident.Lident "data");
+                   loc = { Location.loc_start = ; loc_end = ; loc_ghost =  }
+                   });
+              pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+              pexp_loc_stack = ; pexp_attributes = [] })
+           ]
+         ));
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ; pexp_attributes = [] }
+     ])expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_ident
+         { Location.txt = (Longident.Lident "sid");
+           loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ; pexp_attributes = [] }
+     ])

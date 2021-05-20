@@ -1,0 +1,10 @@
+expression_desc
+
+(Parsetree.Pexp_tuple
+   [{ Parsetree.pexp_desc =
+      (Parsetree.Pexp_ident
+         { Location.txt = (Longident.Lident "s");
+           loc = { Location.loc_start = ; loc_end = ; loc_ghost =  } });
+      pexp_loc = { Location.loc_start = ; loc_end = ; loc_ghost =  };
+      pexp_loc_stack = ; pexp_attributes = [] }
+     ])
