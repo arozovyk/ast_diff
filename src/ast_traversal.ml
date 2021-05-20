@@ -775,8 +775,109 @@ class find_diff =
           | pexp_desc, Pexp_poly ({ pexp_desc = pexp_desc'; _ }, _) ->
               let acc = self#expression_desc pexp_desc pexp_desc' acc in
               acc
-              (*5119 to 80 (5039)*)
+          (*5119 to 80 (5039)*)
+          (* ( Pexp_sequence
+               ( ({
+                    pexp_desc =
+                      Pexp_apply
+                        ( {
+                            pexp_desc =
+                              Pexp_newtype
+                                ( _,
+                                  {
+                                    pexp_desc =
+                                      Pexp_newtype
+                                        ( a',
+                                          {
+                                            pexp_desc = Pexp_newtype (_', e1);
+                                            _;
+                                          } );
+                                    _;
+                                  } );
+                            _;
+                          },
+                          arg_lablel_e_list );
+                    _;
+                  } as seq_expression),
+                 e2 ),
+             Pexp_newtype
+               ( lloc1,
+                 {
+                   pexp_desc =
+                     Pexp_newtype (lloc2, { pexp_desc = Pexp_newtype (lloc3, e1); _ });
+                   _;
+                 } ) ) ->
+             (* Let's consider that the original ast is the right one.*)
+             (* let expr1 =
+                  {
+                    seq_expression with
+                    pexp_desc = Pexp_apply (e1, arg_lablel_e_list);
+                  }
+                in *)
+             let acc = self#expression a a' acc in
+             let acc =
+               self#list
+                 (fun (a, b) (a', b') acc ->
+                   let acc = self#arg_label a a' acc in
+                   let acc = self#expression b b' acc in
+                   acc)
+                 b b' acc
+             in
+             acc *)
           (* END SPECIAL CASES*)
+          | ( oexpr_desc,
+              Pexp_newtype
+                ( lloc1,
+                  ({
+                     pexp_desc =
+                       Pexp_newtype
+                         ( lloc2,
+                           ({
+                              pexp_desc =
+                                Pexp_newtype
+                                  ( lloc3,
+                                    {
+                                      pexp_desc =
+                                        Pexp_sequence
+                                          ( ({
+                                               pexp_desc =
+                                                 Pexp_apply
+                                                   (e1, arg_lablel_e_list);
+                                               _;
+                                             } as seqexp1),
+                                            e2 );
+                                      _;
+                                    } );
+                              _;
+                            } as ntrec2) );
+                     _;
+                   } as ntrec1) ) ) ->
+              let normalized_newtypes =
+                Pexp_newtype
+                  ( lloc1,
+                    {
+                      ntrec1 with
+                      pexp_desc =
+                        Pexp_newtype
+                          ( lloc2,
+                            { ntrec2 with pexp_desc = Pexp_newtype (lloc3, e1) }
+                          );
+                    } )
+              in
+              let normalized_apply =
+                Pexp_apply
+                  ( { e1 with pexp_desc = normalized_newtypes },
+                    arg_lablel_e_list )
+              in
+
+              let normalized_pexp_desc2 =
+                Pexp_sequence ({ seqexp1 with pexp_desc = normalized_apply }, e2)
+              in
+
+              let acc =
+                self#expression_desc oexpr_desc normalized_pexp_desc2 acc
+              in
+              acc
           | _ ->
               (* print_endline (String.sub (show_expression_desc x) 0 25);
                  print_endline (String.sub (show_expression_desc x') 0 25); *)
