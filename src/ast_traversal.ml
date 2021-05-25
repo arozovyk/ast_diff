@@ -174,7 +174,12 @@ class find_diff =
         | Nolabel, Nolabel -> acc
         | Labelled a, Labelled a' -> self#string a a' acc
         | Optional a, Optional a' -> self#string a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "arg_label" (show_arg_label x) (show_arg_label x') acc
+            in
+            acc
 
     method variance : variance -> variance -> diff list -> diff list =
       fun _ _ acc -> acc
@@ -199,7 +204,12 @@ class find_diff =
             let acc = self#string a a' acc in
             let acc = self#option self#char b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "constant" (show_constant x) (show_constant x') acc
+            in
+            acc
 
     method attribute : attribute -> attribute -> diff list -> diff list =
       fun { attr_name; attr_payload; attr_loc }
@@ -232,7 +242,12 @@ class find_diff =
             let acc = self#pattern a a' acc in
             let acc = self#option self#expression b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "payload" (show_payload x) (show_payload x') acc
+            in
+            acc
 
     method core_type : core_type -> core_type -> diff list -> diff list =
       fun { ptyp_desc; ptyp_loc; ptyp_loc_stack; ptyp_attributes }
@@ -287,7 +302,13 @@ class find_diff =
             acc
         | Ptyp_package a, Ptyp_package a' -> self#package_type a a' acc
         | Ptyp_extension a, Ptyp_extension a' -> self#extension a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "core_type_desc" (show_core_type_desc x)
+                (show_core_type_desc x') acc
+            in
+            acc
 
     method package_type : package_type -> package_type -> diff list -> diff list
         =
@@ -325,7 +346,13 @@ class find_diff =
             let acc = self#list self#core_type c c' acc in
             acc
         | Rinherit a, Rinherit a' -> self#core_type a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "row_field_desc" (show_row_field_desc x)
+                (show_row_field_desc x') acc
+            in
+            acc
 
     method object_field : object_field -> object_field -> diff list -> diff list
         =
@@ -349,7 +376,14 @@ class find_diff =
             let acc = self#core_type b b' acc in
             acc
         | Oinherit a, Oinherit a' -> self#core_type a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "object_field_desc" (show_object_field_desc x)
+                (show_object_field_desc x')
+                acc
+            in
+            acc
 
     method pattern : pattern -> pattern -> diff list -> diff list =
       fun { ppat_desc; ppat_loc; ppat_loc_stack; ppat_attributes }
@@ -419,7 +453,21 @@ class find_diff =
             let acc = self#longident_loc a a' acc in
             let acc = self#pattern b b' acc in
             acc
-        | _ -> acc
+        (*BEGIN SPECIAL PATTERN CASES*)
+        | Ppat_var _, Ppat_any ->
+            let acc = self#pattern_desc x x acc in
+            acc
+        | Ppat_tuple [ exp1 ], ppat_desc' ->
+            self#pattern_desc x
+              (Ppat_tuple [ { exp1 with ppat_desc = ppat_desc' } ])
+              acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "pattern_desc" (show_pattern_desc x)
+                (show_pattern_desc x') acc
+            in
+            acc
 
     method expression : expression -> expression -> diff list -> diff list =
       fun { pexp_desc; pexp_loc; pexp_loc_stack; pexp_attributes }
@@ -438,459 +486,268 @@ class find_diff =
     method expression_desc
         : expression_desc -> expression_desc -> diff list -> diff list =
       fun x x' acc ->
-        (* print_endline (String.sub (show_expression_desc x) 0 20);
-           print_endline (String.sub (show_expression_desc x') 0 20); *)
-        if equal_expression_desc x x' then
-          match (x, x') with
-          | Pexp_ident a, Pexp_ident a' -> self#longident_loc a a' acc
-          | Pexp_constant a, Pexp_constant a' -> self#constant a a' acc
-          | Pexp_let (a, b, c), Pexp_let (a', b', c') ->
-              let acc = self#rec_flag a a' acc in
-              let acc = self#list self#value_binding b b' acc in
-              let acc = self#expression c c' acc in
-              acc
-          | Pexp_function a, Pexp_function a' -> self#cases a a' acc
-          | Pexp_fun (a, b, c, d), Pexp_fun (a', b', c', d') ->
-              let acc = self#arg_label a a' acc in
-              let acc = self#option self#expression b b' acc in
-              let acc = self#pattern c c' acc in
-              let acc = self#expression d d' acc in
-              acc
-          | Pexp_apply (a, b), Pexp_apply (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc =
-                self#list
-                  (fun (a, b) (a', b') acc ->
-                    let acc = self#arg_label a a' acc in
-                    let acc = self#expression b b' acc in
-                    acc)
-                  b b' acc
-              in
-              acc
-          | Pexp_match (a, b), Pexp_match (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#cases b b' acc in
-              acc
-          | Pexp_try (a, b), Pexp_try (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#cases b b' acc in
-              acc
-          | Pexp_tuple a, Pexp_tuple a' -> self#list self#expression a a' acc
-          | Pexp_construct (a, b), Pexp_construct (a', b') ->
-              let acc = self#longident_loc a a' acc in
-              let acc = self#option self#expression b b' acc in
-              acc
-          | Pexp_variant (a, b), Pexp_variant (a', b') ->
-              let acc = self#label a a' acc in
-              let acc = self#option self#expression b b' acc in
-              acc
-          | Pexp_record (a, b), Pexp_record (a', b') ->
-              let acc =
-                self#list
-                  (fun (a, b) (a', b') acc ->
-                    let acc = self#longident_loc a a' acc in
-                    let acc = self#expression b b' acc in
-                    acc)
-                  a a' acc
-              in
-              let acc = self#option self#expression b b' acc in
-              acc
-          | Pexp_field (a, b), Pexp_field (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#longident_loc b b' acc in
-              acc
-          | Pexp_setfield (a, b, c), Pexp_setfield (a', b', c') ->
-              let acc = self#expression a a' acc in
-              let acc = self#longident_loc b b' acc in
-              let acc = self#expression c c' acc in
-              acc
-          | Pexp_array a, Pexp_array a' -> self#list self#expression a a' acc
-          | Pexp_ifthenelse (a, b, c), Pexp_ifthenelse (a', b', c') ->
-              let acc = self#expression a a' acc in
-              let acc = self#expression b b' acc in
-              let acc = self#option self#expression c c' acc in
-              acc
-          | Pexp_sequence (a, b), Pexp_sequence (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_while (a, b), Pexp_while (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_for (a, b, c, d, e), Pexp_for (a', b', c', d', e') ->
-              let acc = self#pattern a a' acc in
-              let acc = self#expression b b' acc in
-              let acc = self#expression c c' acc in
-              let acc = self#direction_flag d d' acc in
-              let acc = self#expression e e' acc in
-              acc
-          | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#core_type b b' acc in
-              acc
-          | Pexp_coerce (a, b, c), Pexp_coerce (a', b', c') ->
-              let acc = self#expression a a' acc in
-              let acc = self#option self#core_type b b' acc in
-              let acc = self#core_type c c' acc in
-              acc
-          | Pexp_send (a, b), Pexp_send (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#loc self#label b b' acc in
-              acc
-          | Pexp_new a, Pexp_new a' -> self#longident_loc a a' acc
-          | Pexp_setinstvar (a, b), Pexp_setinstvar (a', b') ->
-              let acc = self#loc self#label a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_override a, Pexp_override a' ->
+        match (x, x') with
+        | Pexp_ident a, Pexp_ident a' -> self#longident_loc a a' acc
+        | Pexp_constant a, Pexp_constant a' -> self#constant a a' acc
+        | Pexp_let (a, b, c), Pexp_let (a', b', c') ->
+            let acc = self#rec_flag a a' acc in
+            let acc = self#list self#value_binding b b' acc in
+            let acc = self#expression c c' acc in
+            acc
+        | Pexp_function a, Pexp_function a' -> self#cases a a' acc
+        | Pexp_fun (a, b, c, d), Pexp_fun (a', b', c', d') ->
+            let acc = self#arg_label a a' acc in
+            let acc = self#option self#expression b b' acc in
+            let acc = self#pattern c c' acc in
+            let acc = self#expression d d' acc in
+            acc
+        | Pexp_apply (a, b), Pexp_apply (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc =
               self#list
                 (fun (a, b) (a', b') acc ->
-                  let acc = self#loc self#label a a' acc in
+                  let acc = self#arg_label a a' acc in
+                  let acc = self#expression b b' acc in
+                  acc)
+                b b' acc
+            in
+            acc
+        | Pexp_match (a, b), Pexp_match (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#cases b b' acc in
+            acc
+        | Pexp_try (a, b), Pexp_try (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#cases b b' acc in
+            acc
+        | Pexp_tuple a, Pexp_tuple a' -> self#list self#expression a a' acc
+        | Pexp_construct (a, b), Pexp_construct (a', b') ->
+            let acc = self#longident_loc a a' acc in
+            let acc = self#option self#expression b b' acc in
+            acc
+        | Pexp_variant (a, b), Pexp_variant (a', b') ->
+            let acc = self#label a a' acc in
+            let acc = self#option self#expression b b' acc in
+            acc
+        | Pexp_record (a, b), Pexp_record (a', b') ->
+            let acc =
+              self#list
+                (fun (a, b) (a', b') acc ->
+                  let acc = self#longident_loc a a' acc in
                   let acc = self#expression b b' acc in
                   acc)
                 a a' acc
-          | Pexp_letmodule (a, b, c), Pexp_letmodule (a', b', c') ->
-              let acc = self#loc (self#option self#string) a a' acc in
-              let acc = self#module_expr b b' acc in
-              let acc = self#expression c c' acc in
-              acc
-          | Pexp_letexception (a, b), Pexp_letexception (a', b') ->
-              let acc = self#extension_constructor a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_assert a, Pexp_assert a' -> self#expression a a' acc
-          | Pexp_lazy a, Pexp_lazy a' -> self#expression a a' acc
-          | Pexp_poly (a, b), Pexp_poly (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#option self#core_type b b' acc in
-              acc
-          | Pexp_object a, Pexp_object a' -> self#class_structure a a' acc
-          | Pexp_newtype (a, b), Pexp_newtype (a', b') ->
-              let acc = self#loc self#string a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_pack a, Pexp_pack a' -> self#module_expr a a' acc
-          | Pexp_open (a, b), Pexp_open (a', b') ->
-              let acc = self#open_declaration a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_letop a, Pexp_letop a' -> self#letop a a' acc
-          | Pexp_extension a, Pexp_extension a' -> self#extension a a' acc
-          | Pexp_unreachable, Pexp_unreachable -> acc
-          | _ -> acc
-        else
-          match (x, x') with
-          | Pexp_ident a, Pexp_ident a' -> self#longident_loc a a' acc
-          | Pexp_constant a, Pexp_constant a' -> self#constant a a' acc
-          | Pexp_let (a, b, c), Pexp_let (a', b', c') ->
-              let acc = self#rec_flag a a' acc in
-              let acc = self#list self#value_binding b b' acc in
-              let acc = self#expression c c' acc in
-              acc
-          | Pexp_function a, Pexp_function a' -> self#cases a a' acc
-          | Pexp_fun (a, b, c, d), Pexp_fun (a', b', c', d') ->
-              let acc = self#arg_label a a' acc in
-              let acc = self#option self#expression b b' acc in
-              let acc = self#pattern c c' acc in
-              let acc = self#expression d d' acc in
-              acc
-          | Pexp_apply (a, b), Pexp_apply (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc =
-                self#list
-                  (fun (a, b) (a', b') acc ->
-                    let acc = self#arg_label a a' acc in
-                    let acc = self#expression b b' acc in
-                    acc)
-                  b b' acc
-              in
-              acc
-          | Pexp_match (a, b), Pexp_match (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#cases b b' acc in
-              acc
-          | Pexp_try (a, b), Pexp_try (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#cases b b' acc in
-              acc
-          | Pexp_tuple a, Pexp_tuple a' -> self#list self#expression a a' acc
-          | Pexp_construct (a, b), Pexp_construct (a', b') ->
-              let acc = self#longident_loc a a' acc in
-              let acc = self#option self#expression b b' acc in
-              acc
-          | Pexp_variant (a, b), Pexp_variant (a', b') ->
-              let acc = self#label a a' acc in
-              let acc = self#option self#expression b b' acc in
-              acc
-          | Pexp_record (a, b), Pexp_record (a', b') ->
-              let acc =
-                self#list
-                  (fun (a, b) (a', b') acc ->
-                    let acc = self#longident_loc a a' acc in
-                    let acc = self#expression b b' acc in
-                    acc)
-                  a a' acc
-              in
-              let acc = self#option self#expression b b' acc in
-              acc
-          | Pexp_field (a, b), Pexp_field (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#longident_loc b b' acc in
-              acc
-          | Pexp_setfield (a, b, c), Pexp_setfield (a', b', c') ->
-              let acc = self#expression a a' acc in
-              let acc = self#longident_loc b b' acc in
-              let acc = self#expression c c' acc in
-              acc
-          | Pexp_array a, Pexp_array a' -> self#list self#expression a a' acc
-          | Pexp_ifthenelse (a, b, c), Pexp_ifthenelse (a', b', c') ->
-              let acc = self#expression a a' acc in
-              let acc = self#expression b b' acc in
-              let acc = self#option self#expression c c' acc in
-              acc
-          | Pexp_sequence (a, b), Pexp_sequence (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_while (a, b), Pexp_while (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_for (a, b, c, d, e), Pexp_for (a', b', c', d', e') ->
-              let acc = self#pattern a a' acc in
-              let acc = self#expression b b' acc in
-              let acc = self#expression c c' acc in
-              let acc = self#direction_flag d d' acc in
-              let acc = self#expression e e' acc in
-              acc
-          | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#core_type b b' acc in
-              acc
-              (*FIXME SEGFAULT*)
-              (* | Pexp_constraint _, Pexp_constraint _ ->
-                 let acc =
-                   add_diff "Pexp_constraint" (show_expression_desc x)
-                     (show_expression_desc x') acc
-                 in
-                 (* let acc = self#expression a a' acc in
-                 let acc = self#core_type b b' acc in *)
-                 acc *)
-          | Pexp_coerce (a, b, c), Pexp_coerce (a', b', c') ->
-              let acc = self#expression a a' acc in
-              let acc = self#option self#core_type b b' acc in
-              let acc = self#core_type c c' acc in
-              acc
-          | Pexp_send (a, b), Pexp_send (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#loc self#label b b' acc in
-              acc
-          | Pexp_new a, Pexp_new a' -> self#longident_loc a a' acc
-          | Pexp_setinstvar (a, b), Pexp_setinstvar (a', b') ->
-              let acc = self#loc self#label a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_override a, Pexp_override a' ->
-              self#list
-                (fun (a, b) (a', b') acc ->
-                  let acc = self#loc self#label a a' acc in
-                  let acc = self#expression b b' acc in
-                  acc)
-                a a' acc
-          | Pexp_letmodule (a, b, c), Pexp_letmodule (a', b', c') ->
-              let acc = self#loc (self#option self#string) a a' acc in
-              let acc = self#module_expr b b' acc in
-              let acc = self#expression c c' acc in
-              acc
-          | Pexp_letexception (a, b), Pexp_letexception (a', b') ->
-              let acc = self#extension_constructor a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_assert a, Pexp_assert a' -> self#expression a a' acc
-          | Pexp_lazy a, Pexp_lazy a' -> self#expression a a' acc
-          | Pexp_poly (a, b), Pexp_poly (a', b') ->
-              let acc = self#expression a a' acc in
-              let acc = self#option self#core_type b b' acc in
-              acc
-          | Pexp_object a, Pexp_object a' -> self#class_structure a a' acc
-          | Pexp_newtype (a, b), Pexp_newtype (a', b') ->
-              let acc = self#loc self#string a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_pack a, Pexp_pack a' -> self#module_expr a a' acc
-          | Pexp_open (a, b), Pexp_open (a', b') ->
-              let acc = self#open_declaration a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | Pexp_letop a, Pexp_letop a' -> self#letop a a' acc
-          | Pexp_extension a, Pexp_extension a' -> self#extension a a' acc
-          | Pexp_unreachable, Pexp_unreachable -> acc
-          (* BEGIN SPECIAL CASES*)
-          | ( Pexp_apply ({ pexp_desc = Pexp_newtype (a, b); _ }, _),
-              Pexp_newtype (a', b') ) ->
-              let acc = self#loc self#string a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          | ( Pexp_newtype (a, b),
-              Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
-              let acc = self#loc self#string a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-              (* 7881 to 7833 (48)*)
-          | ( Pexp_constraint (a, b),
-              Pexp_apply ({ pexp_desc = Pexp_constraint (a', b'); _ }, _) ) ->
-              let acc = self#expression a a' acc in
-              let acc = self#core_type b b' acc in
-              acc
-              (* 7833 to 7672 (161)*)
-          | ( Pexp_open (a, b),
-              Pexp_constraint ({ pexp_desc = Pexp_open (a', b'); _ }, _) ) ->
-              let acc = self#open_declaration a a' acc in
-              let acc = self#expression b b' acc in
-              acc
-          (* 7672 to 6612 (1060)*)
-          | ( Pexp_fun (a, b, c, d),
-              Pexp_apply ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) ) ->
-              let acc = self#arg_label a a' acc in
-              let acc = self#option self#expression b b' acc in
-              let acc = self#pattern c c' acc in
-              let acc = self#expression d d' acc in
-              acc
-          (* 6612 to 6335 (277)*)
-          | ( Pexp_fun (a, b, c, d),
-              Pexp_constraint ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _)
-            ) ->
-              let acc = self#arg_label a a' acc in
-              let acc = self#option self#expression b b' acc in
-              let acc = self#pattern c c' acc in
-              let acc = self#expression d d' acc in
-              acc
-          (* 6335 to 5734 (601)*)
-          (*Ok, let's go*)
-          | pexp_desc, Pexp_constraint ({ pexp_desc = pexp_desc'; _ }, _) ->
-              let acc = self#expression_desc pexp_desc pexp_desc' acc in
-              acc
-          (* 5734 to 5119 (615)*)
-          | pexp_desc, Pexp_poly ({ pexp_desc = pexp_desc'; _ }, _) ->
-              let acc = self#expression_desc pexp_desc pexp_desc' acc in
-              acc
-          (*5119 to 80 (5039)*)
-          (* ( Pexp_sequence
-               ( ({
-                    pexp_desc =
-                      Pexp_apply
-                        ( {
+            in
+            let acc = self#option self#expression b b' acc in
+            acc
+        | Pexp_field (a, b), Pexp_field (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#longident_loc b b' acc in
+            acc
+        | Pexp_setfield (a, b, c), Pexp_setfield (a', b', c') ->
+            let acc = self#expression a a' acc in
+            let acc = self#longident_loc b b' acc in
+            let acc = self#expression c c' acc in
+            acc
+        | Pexp_array a, Pexp_array a' -> self#list self#expression a a' acc
+        | Pexp_ifthenelse (a, b, c), Pexp_ifthenelse (a', b', c') ->
+            let acc = self#expression a a' acc in
+            let acc = self#expression b b' acc in
+            let acc = self#option self#expression c c' acc in
+            acc
+        | Pexp_sequence (a, b), Pexp_sequence (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        | Pexp_while (a, b), Pexp_while (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        | Pexp_for (a, b, c, d, e), Pexp_for (a', b', c', d', e') ->
+            let acc = self#pattern a a' acc in
+            let acc = self#expression b b' acc in
+            let acc = self#expression c c' acc in
+            let acc = self#direction_flag d d' acc in
+            let acc = self#expression e e' acc in
+            acc
+        | Pexp_constraint (a, b), Pexp_constraint (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#core_type b b' acc in
+            acc
+        | Pexp_coerce (a, b, c), Pexp_coerce (a', b', c') ->
+            let acc = self#expression a a' acc in
+            let acc = self#option self#core_type b b' acc in
+            let acc = self#core_type c c' acc in
+            acc
+        | Pexp_send (a, b), Pexp_send (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#loc self#label b b' acc in
+            acc
+        | Pexp_new a, Pexp_new a' -> self#longident_loc a a' acc
+        | Pexp_setinstvar (a, b), Pexp_setinstvar (a', b') ->
+            let acc = self#loc self#label a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        | Pexp_override a, Pexp_override a' ->
+            self#list
+              (fun (a, b) (a', b') acc ->
+                let acc = self#loc self#label a a' acc in
+                let acc = self#expression b b' acc in
+                acc)
+              a a' acc
+        | Pexp_letmodule (a, b, c), Pexp_letmodule (a', b', c') ->
+            let acc = self#loc (self#option self#string) a a' acc in
+            let acc = self#module_expr b b' acc in
+            let acc = self#expression c c' acc in
+            acc
+        | Pexp_letexception (a, b), Pexp_letexception (a', b') ->
+            let acc = self#extension_constructor a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        | Pexp_assert a, Pexp_assert a' -> self#expression a a' acc
+        | Pexp_lazy a, Pexp_lazy a' -> self#expression a a' acc
+        | Pexp_poly (a, b), Pexp_poly (a', b') ->
+            let acc = self#expression a a' acc in
+            let acc = self#option self#core_type b b' acc in
+            acc
+        | Pexp_object a, Pexp_object a' -> self#class_structure a a' acc
+        | Pexp_newtype (a, b), Pexp_newtype (a', b') ->
+            let acc = self#loc self#string a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        | Pexp_pack a, Pexp_pack a' -> self#module_expr a a' acc
+        | Pexp_open (a, b), Pexp_open (a', b') ->
+            let acc = self#open_declaration a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        | Pexp_letop a, Pexp_letop a' -> self#letop a a' acc
+        | Pexp_extension a, Pexp_extension a' -> self#extension a a' acc
+        | Pexp_unreachable, Pexp_unreachable -> acc
+        (* BEGIN SPECIAL CASES*)
+        (*Note: in the case of compiler where compiler provides less information
+          (e.g. unwrapping Pexp_apply, Pexp_tuple [x] ) we keep the original (ppx) locations.
+          However, it might be interesing to upstream the locations from the reparsed node. f*)
+        | ( Pexp_apply (({ pexp_desc = Pexp_newtype _; _ } as exp1), al_exp_list),
+            Pexp_newtype _ ) ->
+            let acc =
+              self#expression_desc x
+                (Pexp_apply ({ exp1 with pexp_desc = x' }, al_exp_list))
+                acc
+            in
+            acc
+            (*around 300*)
+        | ( Pexp_newtype (a, b),
+            Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
+            let acc = self#loc self#string a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+            (* 7881 to 7833 (48)*)
+        | ( Pexp_constraint (a, b),
+            Pexp_apply ({ pexp_desc = Pexp_constraint (a', b'); _ }, _) ) ->
+            let acc = self#expression a a' acc in
+            let acc = self#core_type b b' acc in
+            acc
+            (* 7833 to 7672 (161)*)
+        | ( Pexp_open (a, b),
+            Pexp_constraint ({ pexp_desc = Pexp_open (a', b'); _ }, _) ) ->
+            let acc = self#open_declaration a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+        (* 7672 to 6612 (1060)*)
+        | ( Pexp_fun (a, b, c, d),
+            Pexp_apply ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) ) ->
+            let acc = self#arg_label a a' acc in
+            let acc = self#option self#expression b b' acc in
+            let acc = self#pattern c c' acc in
+            let acc = self#expression d d' acc in
+            acc
+        (* 6612 to 6335 (277)*)
+        | ( Pexp_fun (a, b, c, d),
+            Pexp_constraint ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) )
+          ->
+            let acc = self#arg_label a a' acc in
+            let acc = self#option self#expression b b' acc in
+            let acc = self#pattern c c' acc in
+            let acc = self#expression d d' acc in
+            acc
+        (* 6335 to 5734 (601)*)
+        (*Ok, let's go*)
+        | pexp_desc, Pexp_constraint ({ pexp_desc = pexp_desc'; _ }, _) ->
+            let acc = self#expression_desc pexp_desc pexp_desc' acc in
+            acc
+        (* 5734 to 5119 (615)*)
+        | pexp_desc, Pexp_poly ({ pexp_desc = pexp_desc'; _ }, _) ->
+            let acc = self#expression_desc pexp_desc pexp_desc' acc in
+            acc
+        (*5119 to 80 (5039)*)
+        | ( oexpr_desc,
+            Pexp_newtype
+              ( lloc1,
+                ({
+                   pexp_desc =
+                     Pexp_newtype
+                       ( lloc2,
+                         ({
                             pexp_desc =
                               Pexp_newtype
-                                ( _,
+                                ( lloc3,
                                   {
                                     pexp_desc =
-                                      Pexp_newtype
-                                        ( a',
-                                          {
-                                            pexp_desc = Pexp_newtype (_', e1);
-                                            _;
-                                          } );
+                                      Pexp_sequence
+                                        ( ({
+                                             pexp_desc =
+                                               Pexp_apply (e1, arg_lablel_e_list);
+                                             _;
+                                           } as seqexp1),
+                                          e2 );
                                     _;
                                   } );
                             _;
-                          },
-                          arg_lablel_e_list );
-                    _;
-                  } as seq_expression),
-                 e2 ),
-             Pexp_newtype
-               ( lloc1,
-                 {
-                   pexp_desc =
-                     Pexp_newtype (lloc2, { pexp_desc = Pexp_newtype (lloc3, e1); _ });
+                          } as ntrec2) );
                    _;
-                 } ) ) ->
-             (* Let's consider that the original ast is the right one.*)
-             (* let expr1 =
-                  {
-                    seq_expression with
-                    pexp_desc = Pexp_apply (e1, arg_lablel_e_list);
-                  }
-                in *)
-             let acc = self#expression a a' acc in
-             let acc =
-               self#list
-                 (fun (a, b) (a', b') acc ->
-                   let acc = self#arg_label a a' acc in
-                   let acc = self#expression b b' acc in
-                   acc)
-                 b b' acc
-             in
-             acc *)
-          (* END SPECIAL CASES*)
-          | ( oexpr_desc,
+                 } as ntrec1) ) ) ->
+            let normalized_newtypes =
               Pexp_newtype
                 ( lloc1,
-                  ({
-                     pexp_desc =
-                       Pexp_newtype
-                         ( lloc2,
-                           ({
-                              pexp_desc =
-                                Pexp_newtype
-                                  ( lloc3,
-                                    {
-                                      pexp_desc =
-                                        Pexp_sequence
-                                          ( ({
-                                               pexp_desc =
-                                                 Pexp_apply
-                                                   (e1, arg_lablel_e_list);
-                                               _;
-                                             } as seqexp1),
-                                            e2 );
-                                      _;
-                                    } );
-                              _;
-                            } as ntrec2) );
-                     _;
-                   } as ntrec1) ) ) ->
-              let normalized_newtypes =
-                Pexp_newtype
-                  ( lloc1,
-                    {
-                      ntrec1 with
-                      pexp_desc =
-                        Pexp_newtype
-                          ( lloc2,
-                            { ntrec2 with pexp_desc = Pexp_newtype (lloc3, e1) }
-                          );
-                    } )
-              in
-              let normalized_apply =
-                Pexp_apply
-                  ( { e1 with pexp_desc = normalized_newtypes },
-                    arg_lablel_e_list )
-              in
-              let normalized_pexp_desc2 =
-                Pexp_sequence ({ seqexp1 with pexp_desc = normalized_apply }, e2)
-              in
-              let acc =
-                self#expression_desc oexpr_desc normalized_pexp_desc2 acc
-              in
+                  {
+                    ntrec1 with
+                    pexp_desc =
+                      Pexp_newtype
+                        ( lloc2,
+                          { ntrec2 with pexp_desc = Pexp_newtype (lloc3, e1) }
+                        );
+                  } )
+            in
+            let normalized_apply =
+              Pexp_apply
+                ({ e1 with pexp_desc = normalized_newtypes }, arg_lablel_e_list)
+            in
+            let normalized_pexp_desc2 =
+              Pexp_sequence ({ seqexp1 with pexp_desc = normalized_apply }, e2)
+            in
+            let acc =
+              self#expression_desc oexpr_desc normalized_pexp_desc2 acc
+            in
+            acc
+        (* 78 to 18 (50)*)
+        (* let acc =
+             add_diff "expression_desc" (show_expression_desc x)
+               (show_expression_desc x') acc
+           in
+           acc *)
+        | Pexp_tuple [ exp1 ], pexp_desc' ->
+            self#expression_desc x
+              (Pexp_tuple [ { exp1 with pexp_desc = pexp_desc' } ])
               acc
-              (* 78 to 18 (50)*)
-              (* let acc =
-                   add_diff "expression_desc" (show_expression_desc x)
-                     (show_expression_desc x') acc
-                 in
-                 acc *)
-          | _ ->
-              (* print_endline (String.sub (show_expression_desc x) 0 25);
-                 print_endline (String.sub (show_expression_desc x') 0 25); *)
-              diff_count <- diff_count + 1;
-              let acc =
-                add_diff "expression_desc" (show_expression_desc x)
-                  (show_expression_desc x') acc
-              in
-              acc
+        | _ ->
+            (* print_endline (String.sub (show_expression_desc x) 0 25);
+               print_endline (String.sub (show_expression_desc x') 0 25); *)
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "expression_desc" (show_expression_desc x)
+                (show_expression_desc x') acc
+            in
+            acc
 
     method case : case -> case -> diff list -> diff list =
       fun { pc_lhs; pc_guard; pc_rhs }
@@ -1002,7 +859,12 @@ class find_diff =
         | Ptype_record a, Ptype_record a' ->
             self#list self#label_declaration a a' acc
         | Ptype_open, Ptype_open -> acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "type_kind" (show_type_kind x) (show_type_kind x') acc
+            in
+            acc
 
     method label_declaration
         : label_declaration -> label_declaration -> diff list -> diff list =
@@ -1051,7 +913,15 @@ class find_diff =
         | Pcstr_tuple a, Pcstr_tuple a' -> self#list self#core_type a a' acc
         | Pcstr_record a, Pcstr_record a' ->
             self#list self#label_declaration a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "constructor_arguments"
+                (show_constructor_arguments x)
+                (show_constructor_arguments x')
+                acc
+            in
+            acc
 
     method type_extension
         : type_extension -> type_extension -> diff list -> diff list =
@@ -1140,7 +1010,15 @@ class find_diff =
             let acc = self#option self#core_type b b' acc in
             acc
         | Pext_rebind a, Pext_rebind a' -> self#longident_loc a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "extension_constructor_kind"
+                (show_extension_constructor_kind x)
+                (show_extension_constructor_kind x')
+                acc
+            in
+            acc
 
     method class_type : class_type -> class_type -> diff list -> diff list =
       fun { pcty_desc; pcty_loc; pcty_attributes }
@@ -1173,7 +1051,13 @@ class find_diff =
             let acc = self#open_description a a' acc in
             let acc = self#class_type b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "class_type_desc" (show_class_type_desc x)
+                (show_class_type_desc x') acc
+            in
+            acc
 
     method class_signature
         : class_signature -> class_signature -> diff list -> diff list =
@@ -1230,7 +1114,15 @@ class find_diff =
               a a' acc
         | Pctf_attribute a, Pctf_attribute a' -> self#attribute a a' acc
         | Pctf_extension a, Pctf_extension a' -> self#extension a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "class_type_field_desc"
+                (show_class_type_field_desc x)
+                (show_class_type_field_desc x')
+                acc
+            in
+            acc
 
     method class_infos
         : 'a.
@@ -1333,7 +1225,13 @@ class find_diff =
             let acc = self#open_description a a' acc in
             let acc = self#class_expr b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "class_expr_desc" (show_class_expr_desc x)
+                (show_class_expr_desc x') acc
+            in
+            acc
 
     method class_structure
         : class_structure -> class_structure -> diff list -> diff list =
@@ -1387,7 +1285,13 @@ class find_diff =
         | Pcf_initializer a, Pcf_initializer a' -> self#expression a a' acc
         | Pcf_attribute a, Pcf_attribute a' -> self#attribute a a' acc
         | Pcf_extension a, Pcf_extension a' -> self#extension a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "class_field_desc" (show_class_field_desc x)
+                (show_class_field_desc x') acc
+            in
+            acc
 
     method class_field_kind
         : class_field_kind -> class_field_kind -> diff list -> diff list =
@@ -1398,7 +1302,13 @@ class find_diff =
             let acc = self#override_flag a a' acc in
             let acc = self#expression b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "class_field_kind" (show_class_field_kind x)
+                (show_class_field_kind x') acc
+            in
+            acc
 
     method class_declaration
         : class_declaration -> class_declaration -> diff list -> diff list =
@@ -1433,7 +1343,13 @@ class find_diff =
         | Pmty_typeof a, Pmty_typeof a' -> self#module_expr a a' acc
         | Pmty_extension a, Pmty_extension a' -> self#extension a a' acc
         | Pmty_alias a, Pmty_alias a' -> self#longident_loc a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "module_type_desc" (show_module_type_desc x)
+                (show_module_type_desc x') acc
+            in
+            acc
 
     method functor_parameter
         : functor_parameter -> functor_parameter -> diff list -> diff list =
@@ -1444,7 +1360,14 @@ class find_diff =
             let acc = self#loc (self#option self#string) a a' acc in
             let acc = self#module_type b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "functor_parameter" (show_functor_parameter x)
+                (show_functor_parameter x')
+                acc
+            in
+            acc
 
     method signature : signature -> signature -> diff list -> diff list =
       self#list self#signature_item
@@ -1487,7 +1410,15 @@ class find_diff =
             let acc = self#extension a a' acc in
             let acc = self#attributes b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "signature_item_desc"
+                (show_signature_item_desc x)
+                (show_signature_item_desc x')
+                acc
+            in
+            acc
 
     method module_declaration
         : module_declaration -> module_declaration -> diff list -> diff list =
@@ -1611,7 +1542,13 @@ class find_diff =
             let acc = self#longident_loc a a' acc in
             let acc = self#longident_loc b b' acc in
             acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "with_constraint" (show_with_constraint x)
+                (show_with_constraint x') acc
+            in
+            acc
 
     method module_expr : module_expr -> module_expr -> diff list -> diff list =
       fun { pmod_desc; pmod_loc; pmod_attributes }
@@ -1645,7 +1582,13 @@ class find_diff =
             acc
         | Pmod_unpack a, Pmod_unpack a' -> self#expression a a' acc
         | Pmod_extension a, Pmod_extension a' -> self#extension a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "module_expr_desc" (show_module_expr_desc x)
+                (show_module_expr_desc x') acc
+            in
+            acc
 
     method structure : structure -> structure -> diff list -> diff list =
       self#list self#structure_item
@@ -1661,7 +1604,6 @@ class find_diff =
     method structure_item_desc
         : structure_item_desc -> structure_item_desc -> diff list -> diff list =
       fun x x' acc ->
-        (*  if equal_structure_item_desc x x' then *)
         match (x, x') with
         | Pstr_eval (a, b), Pstr_eval (a', b') ->
             let acc = self#expression a a' acc in
@@ -1694,12 +1636,15 @@ class find_diff =
             let acc = self#extension a a' acc in
             let acc = self#attributes b b' acc in
             acc
-        | _ -> acc
-    (* else
-       add_diff "structure_item_desc"
-         (show_structure_item_desc x)
-         (show_structure_item_desc x')
-         acc *)
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "structure_item_desc"
+                (show_structure_item_desc x)
+                (show_structure_item_desc x')
+                acc
+            in
+            acc
 
     method value_binding
         : value_binding -> value_binding -> diff list -> diff list =
@@ -1737,7 +1682,13 @@ class find_diff =
         match (x, x') with
         | Ptop_def a, Ptop_def a' -> self#structure a a' acc
         | Ptop_dir a, Ptop_dir a' -> self#toplevel_directive a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "toplevel_phrase" (show_toplevel_phrase x)
+                (show_toplevel_phrase x') acc
+            in
+            acc
 
     method toplevel_directive
         : toplevel_directive -> toplevel_directive -> diff list -> diff list =
@@ -1771,7 +1722,15 @@ class find_diff =
             acc
         | Pdir_ident a, Pdir_ident a' -> self#longident a a' acc
         | Pdir_bool a, Pdir_bool a' -> self#bool a a' acc
-        | _ -> acc
+        | _ ->
+            diff_count <- diff_count + 1;
+            let acc =
+              add_diff "directive_argument_desc"
+                (show_directive_argument_desc x)
+                (show_directive_argument_desc x')
+                acc
+            in
+            acc
 
     method cases : cases -> cases -> diff list -> diff list =
       self#list self#case
