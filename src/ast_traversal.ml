@@ -1,16 +1,21 @@
 open Ast
 
-type diff = { method_name : string; fst_node_pp : string; snd_node_pp : string }
+type diff = {
+  method_name : string;
+  fst_node_pp : string;
+  snd_node_pp : string;
+  source_code : string;
+}
 [@@deriving ord]
 
-let diff_to_string { method_name; fst_node_pp; snd_node_pp } =
+let diff_to_string { method_name; fst_node_pp; snd_node_pp; source_code } =
   "method_name: " ^ method_name ^ "\n\n" ^ "fst_node_pp:\n\n" ^ fst_node_pp
-  ^ "\n\n" ^ "snd_node_pp:\n\n" ^ snd_node_pp
+  ^ "\n\n" ^ "snd_node_pp:\n\n" ^ snd_node_pp ^ "source_code:\n\n" ^ source_code
 
 let i = ref 0
 
-let add_diff method_name fst_node_pp snd_node_pp acc =
-  let r = { method_name; fst_node_pp; snd_node_pp } in
+let add_diff method_name fst_node_pp snd_node_pp ?(source_code = "undefined") acc =
+  let r = { method_name; fst_node_pp; snd_node_pp; source_code } in
   i := !i + 1;
   r :: acc
 
@@ -624,9 +629,9 @@ class find_diff =
         | Pexp_extension a, Pexp_extension a' -> self#extension a a' acc
         | Pexp_unreachable, Pexp_unreachable -> acc
         (* BEGIN SPECIAL CASES*)
-        (*Note: in the case of compiler where compiler provides less information
+        (*Note: in the case where compiler provides less information
           (e.g. unwrapping Pexp_apply, Pexp_tuple [x] ) we keep the original (ppx) locations.
-          However, it might be interesing to upstream the locations from the reparsed node. f*)
+          However, it might be interesing to upstream the locations from the reparsed node. *)
         | ( Pexp_apply (({ pexp_desc = Pexp_newtype _; _ } as exp1), al_exp_list),
             Pexp_newtype _ ) ->
             let acc =
@@ -671,7 +676,6 @@ class find_diff =
             let acc = self#expression d d' acc in
             acc
         (* 6335 to 5734 (601)*)
-        (*Ok, let's go*)
         | pexp_desc, Pexp_constraint ({ pexp_desc = pexp_desc'; _ }, _) ->
             let acc = self#expression_desc pexp_desc pexp_desc' acc in
             acc
@@ -730,18 +734,11 @@ class find_diff =
             in
             acc
         (* 78 to 18 (50)*)
-        (* let acc =
-             add_diff "expression_desc" (show_expression_desc x)
-               (show_expression_desc x') acc
-           in
-           acc *)
         | Pexp_tuple [ exp1 ], pexp_desc' ->
             self#expression_desc x
               (Pexp_tuple [ { exp1 with pexp_desc = pexp_desc' } ])
               acc
         | _ ->
-            (* print_endline (String.sub (show_expression_desc x) 0 25);
-               print_endline (String.sub (show_expression_desc x') 0 25); *)
             diff_count <- diff_count + 1;
             let acc =
               add_diff "expression_desc" (show_expression_desc x)

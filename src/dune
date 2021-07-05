@@ -1,2 +1,5 @@
-
-(executable (name ast_compare) (libraries ppxlib stdio re) (preprocess (pps ppx_deriving.std)))
+(executable
+ (name ast_compare)
+ (libraries ppxlib stdio re)
+ (preprocess
+  (pps ppx_deriving.std)))
