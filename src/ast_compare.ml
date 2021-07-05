@@ -26,9 +26,11 @@ let _ =
         let res_o, res_r, res_s =
           List.mapi
             (fun i { method_name; fst_node_pp; snd_node_pp; source_code } ->
-              ( "diff-o" ^ Int.to_string i ^ method_name ^ "\n\n" ^ fst_node_pp,
-                "diff-r" ^ Int.to_string i ^ method_name ^ "\n\n" ^ snd_node_pp,
-                "diff-s" ^ Int.to_string i ^ source_code ^ " \n\n" ))
+              ( "diff-o-" ^ Int.to_string i ^ ": " ^ method_name ^ "\n\n"
+                ^ fst_node_pp,
+                "diff-r-" ^ Int.to_string i ^ ": " ^ method_name ^ "\n\n"
+                ^ snd_node_pp,
+                "diff-s-" ^ Int.to_string i ^ ": " ^ source_code ^ " \n\n" ))
             diff_list
           |> Base.List.unzip3
         in

@@ -10,11 +10,13 @@ type diff = {
 
 let diff_to_string { method_name; fst_node_pp; snd_node_pp; source_code } =
   "method_name: " ^ method_name ^ "\n\n" ^ "fst_node_pp:\n\n" ^ fst_node_pp
-  ^ "\n\n" ^ "snd_node_pp:\n\n" ^ snd_node_pp ^ "source_code:\n\n" ^ source_code
+  ^ "\n\n" ^ "snd_node_pp:\n\n" ^ snd_node_pp ^ "\n\nsource_code:\n\n"
+  ^ source_code
 
 let i = ref 0
 
-let add_diff method_name fst_node_pp snd_node_pp ?(source_code = "undefined") acc =
+let add_diff method_name fst_node_pp snd_node_pp ?(source_code = "undefined")
+    acc =
   let r = { method_name; fst_node_pp; snd_node_pp; source_code } in
   i := !i + 1;
   r :: acc
@@ -459,9 +461,24 @@ class find_diff =
             let acc = self#pattern b b' acc in
             acc
         (*BEGIN SPECIAL PATTERN CASES*)
+        (* This case occurs when:
+           A ppx generates:
+             - Ppat_var { Location.txt = "_" ... }
+           That corresponds to  the code:
+             `_`
+           That gets reinterpreted by the compiler as
+             Ppat_any
+        *)
         | Ppat_var _, Ppat_any ->
             let acc = self#pattern_desc x x acc in
             acc
+        (* This case occurs when:
+           A ppx generates:
+             - Ppat_tuple [expr] (a single element tuple)
+           That corresponds to the code:
+             `(code_expr)`, where `code_expr` is the code of the expression.
+           The copiler ignores the brackets and simply considers the internal expression, i.e. unwrapping the tuple.
+        *)
         | Ppat_tuple [ exp1 ], ppat_desc' ->
             self#pattern_desc x
               (Ppat_tuple [ { exp1 with ppat_desc = ppat_desc' } ])
@@ -470,7 +487,16 @@ class find_diff =
             diff_count <- diff_count + 1;
             let acc =
               add_diff "pattern_desc" (show_pattern_desc x)
-                (show_pattern_desc x') acc
+                (show_pattern_desc x')
+                ~source_code:
+                  (Format.asprintf "%a" Pprintast.pattern
+                     {
+                       ppat_desc = x;
+                       ppat_loc = Location.none;
+                       ppat_loc_stack = [];
+                       ppat_attributes = [];
+                     })
+                acc
             in
             acc
 
@@ -627,11 +653,22 @@ class find_diff =
             acc
         | Pexp_letop a, Pexp_letop a' -> self#letop a a' acc
         | Pexp_extension a, Pexp_extension a' -> self#extension a a' acc
-        | Pexp_unreachable, Pexp_unreachable -> acc
-        (* BEGIN SPECIAL CASES*)
-        (*Note: in the case where compiler provides less information
-          (e.g. unwrapping Pexp_apply, Pexp_tuple [x] ) we keep the original (ppx) locations.
-          However, it might be interesing to upstream the locations from the reparsed node. *)
+        | Pexp_unreachable, Pexp_unreachable ->
+            acc
+            (* BEGIN SPECIAL CASES*)
+            (*Note: in the case where compiler provides less information
+              (e.g. unwrapping Pexp_apply, Pexp_tuple [x] ) we keep the original (ppx) locations.
+              However, it might be interesing to upstream the locations from the reparsed node. *)
+            (*
+            The difference seems to be related to Js_of_ocaml: 
+            The typical generated code resulting in this case: 
+            ```
+            (fun (type res) ->
+              fun (type t9) ->
+                fun (type t8) ->
+                  fun (t9 : t9 Js_of_ocaml.Js.t) -> ... 
+            ```
+          *)
         | ( Pexp_apply (({ pexp_desc = Pexp_newtype _; _ } as exp1), al_exp_list),
             Pexp_newtype _ ) ->
             let acc =
@@ -641,11 +678,11 @@ class find_diff =
             in
             acc
             (*around 300*)
-        | ( Pexp_newtype (a, b),
-            Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
-            let acc = self#loc self#string a a' acc in
-            let acc = self#expression b b' acc in
-            acc
+            (* | ( Pexp_newtype (a, b),
+                Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
+                let acc = self#loc self#string a a' acc in
+                let acc = self#expression b b' acc in
+                acc *)
             (* 7881 to 7833 (48)*)
         | ( Pexp_constraint (a, b),
             Pexp_apply ({ pexp_desc = Pexp_constraint (a', b'); _ }, _) ) ->
@@ -742,7 +779,16 @@ class find_diff =
             diff_count <- diff_count + 1;
             let acc =
               add_diff "expression_desc" (show_expression_desc x)
-                (show_expression_desc x') acc
+                (show_expression_desc x')
+                ~source_code:
+                  (Format.asprintf "%a" Pprintast.expression
+                     {
+                       pexp_desc = x;
+                       pexp_loc = Location.none;
+                       pexp_loc_stack = [];
+                       pexp_attributes = [];
+                     })
+                acc
             in
             acc
 
