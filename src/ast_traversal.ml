@@ -677,25 +677,38 @@ class find_diff =
                 acc
             in
             acc
-            (*around 300*)
-            (* | ( Pexp_newtype (a, b),
-                Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
-                let acc = self#loc self#string a a' acc in
-                let acc = self#expression b b' acc in
-                acc *)
-            (* 7881 to 7833 (48)*)
+        | ( Pexp_newtype (a, b),
+            Pexp_apply ({ pexp_desc = Pexp_newtype (a', b'); _ }, _) ) ->
+            let acc = self#loc self#string a a' acc in
+            let acc = self#expression b b' acc in
+            acc
+            (*Also caused by js_of_ocaml :
+              with the generated code :
+              ` (Js_of_ocaml.Js.Unsafe.get t0 "QRCode" : res) `
+            *)
         | ( Pexp_constraint (a, b),
             Pexp_apply ({ pexp_desc = Pexp_constraint (a', b'); _ }, _) ) ->
             let acc = self#expression a a' acc in
             let acc = self#core_type b b' acc in
             acc
-            (* 7833 to 7672 (161)*)
+            (*Caused by :
+              `let open! ((Ppx_deriving_yojson_runtime)[@ocaml.warning "-A"]) in ... `*)
         | ( Pexp_open (a, b),
             Pexp_constraint ({ pexp_desc = Pexp_open (a', b'); _ }, _) ) ->
             let acc = self#open_declaration a a' acc in
             let acc = self#expression b b' acc in
             acc
-        (* 7672 to 6612 (1060)*)
+            (* Caused by :
+               `(let open! ((Ppx_deriving_runtime)[@ocaml.warning "-A"])...` *)
+        | ( Pexp_let (a, b, c),
+            Pexp_constraint ({ pexp_desc = Pexp_let (a', b', c'); _ }, _) ) ->
+            let acc = self#rec_flag a a' acc in
+            let acc = self#list self#value_binding b b' acc in
+            let acc = self#expression c c' acc in
+            acc
+            (*Caused by:
+              `fun (t39 : t39 Js_of_ocaml.Js.t) -> ... `
+            *)
         | ( Pexp_fun (a, b, c, d),
             Pexp_apply ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) ) ->
             let acc = self#arg_label a a' acc in
@@ -703,7 +716,9 @@ class find_diff =
             let acc = self#pattern c c' acc in
             let acc = self#expression d d' acc in
             acc
-        (* 6612 to 6335 (277)*)
+            (*Caused by:
+              `fun x -> Ppx_deriving_runtime.Format.asprintf "%a" pp x `
+            *)
         | ( Pexp_fun (a, b, c, d),
             Pexp_constraint ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) )
           ->
@@ -712,15 +727,36 @@ class find_diff =
             let acc = self#pattern c c' acc in
             let acc = self#expression d d' acc in
             acc
-        (* 6335 to 5734 (601)*)
-        | pexp_desc, Pexp_constraint ({ pexp_desc = pexp_desc'; _ }, _) ->
-            let acc = self#expression_desc pexp_desc pexp_desc' acc in
+            (* | pexp_desc, Pexp_constraint ({ pexp_desc = pexp_desc'; _ }, _) ->
+                let acc = self#expression_desc pexp_desc pexp_desc' acc in
+                acc *)
+            (*
+               Caused by:
+               ```
+                  fun env ->
+                  fun _visitors_this_0 ->
+                  fun _visitors_this_1 ->
+                    ```
+                  in opams package morbig/src/CST for instance 
+            *)
+        | ( Pexp_fun (a, b, c, d),
+            Pexp_poly ({ pexp_desc = Pexp_fun (a', b', c', d'); _ }, _) ) ->
+            let acc = self#arg_label a a' acc in
+            let acc = self#option self#expression b b' acc in
+            let acc = self#pattern c c' acc in
+            let acc = self#expression d d' acc in
             acc
-        (* 5734 to 5119 (615)*)
-        | pexp_desc, Pexp_poly ({ pexp_desc = pexp_desc'; _ }, _) ->
-            let acc = self#expression_desc pexp_desc pexp_desc' acc in
-            acc
-        (*5119 to 80 (5039)*)
+            (* Caused by this recurent piece of code:
+               ((fun (type res) ->
+                    fun (type t9) ->
+                      fun (type t8) ->
+                  fun (t9 : t9 Js_of_ocaml.Js.t) ->
+                    fun (t8 : t8) ->
+                      fun (_ : t9 -> < set: t8 -> unit   ;.. >  Js_of_ocaml.Js.gen_prop)
+                -> (Js_of_ocaml.Js.Unsafe.set t9 "config"
+                   (Js_of_ocaml.Js.Unsafe.inject t8) : unit)))
+                (((math : < .. >  Js_of_ocaml.Js.t))[@merlin.hide ])
+                (_s "TeX-AMS_HTML-full") (fun x -> x#config) *)
         | ( oexpr_desc,
             Pexp_newtype
               ( lloc1,
@@ -770,7 +806,7 @@ class find_diff =
               self#expression_desc oexpr_desc normalized_pexp_desc2 acc
             in
             acc
-        (* 78 to 18 (50)*)
+            (*Same as Ppat_tuple, unwrapping singleton*)
         | Pexp_tuple [ exp1 ], pexp_desc' ->
             self#expression_desc x
               (Pexp_tuple [ { exp1 with pexp_desc = pexp_desc' } ])
